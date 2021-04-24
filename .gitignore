@@ -1,3 +1,7 @@
+# Custom
+experiments/mnist_data/
+experiments/samples/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
