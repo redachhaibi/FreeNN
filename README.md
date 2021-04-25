@@ -32,6 +32,13 @@ $ pip install wheel
 python setup.py develop
 ```
 
+6. (Optional) In order to use Jupyter with this virtual environment .venv
+```bash
+pip install --user ipykernel
+python -m ipykernel install --user --name=myenv
+```
+(see https://janakiev.com/blog/jupyter-virtual-envs/ for details)
+
 ## Configuration
 Nothing to do
 
