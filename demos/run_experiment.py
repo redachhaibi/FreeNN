@@ -7,6 +7,8 @@ import numpy
 from fiberedae.utils import nn as nnutils
 from icecream import ic
 
+import click
+
 def _get_attr(obj, attr_name, human_err_message):
     try:
         thing = getattr(obj, attr_name)
@@ -247,18 +249,24 @@ class Trainer(object):
 
         return learnin_curves
 
+@click.command()
+@click.option('-j', '--json_file', required=True, help='The JSON file to run the experiment')
 def run(json_file):
     import json
     import os
+    import shutil
 
-    def _mkdir():
+    def _mkdir(json_file):
         import time
+        fix = os.path.basename(json_file).split(".")[0]
+        date = time.ctime().replace(":", "-").replace(" ", "_").replace("__", "_")
+        
+        fn = fix +"_"+ date
+        print("making folder:", fn)
+        os.mkdir(fn)
+        return fn
 
-        fix = time.ctime().replace(":", "-").replace(" ", "_").replace("__", "_")
-        print("making folder:", fix)
-        os.mkdir(fix)
-        return fix
-
+    print("initializing...")
     with open(json_file) as fifi:
         config = json.load(fifi)
 
@@ -267,17 +275,23 @@ def run(json_file):
     mlp.initialize(config["initialization"]["name"], config["initialization"]["torch_kwargs"])
 
     reporters = [ BatchReporter(**elmt) for elmt in config["reporters"] ]
-    experiment_dir = _mkdir()
+    experiment_dir = _mkdir(json_file)
     for reporter in reporters:
         reporter.set_dir(experiment_dir)
 
+    print("copying json file for reference...")
+    shutil.copy2(json_file, experiment_dir)
+
+    print("training...")
     trainer = Trainer(mlp, data_master, reporters)
     learning_curves = trainer.train(**config["trainer"])
 
+    print("saving learning curves...")
     for key, value in learning_curves.items():
         fn = os.path.join(experiment_dir, "learning_curve_%s.npy" %key)
         numpy.save(fn, numpy.array(value, dtype="float32"))
+    
+    print("done.")
 
 if __name__ == '__main__':
-    # run("mlp_from_list.json")
-    run("mlp_procedural.json")
+    run()
