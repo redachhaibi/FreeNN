@@ -15,7 +15,7 @@ def _get_attr(obj, attr_name, human_err_message):
     return thing
 
 class DataMaster:
-    def __init__(self, dataset_name, mininatch_size, num_workers=8):
+    def __init__(self, name, mininatch_size, num_workers=8):
     
         self.mininatch_size = mininatch_size
         self.num_workers = num_workers
@@ -28,7 +28,7 @@ class DataMaster:
         self.in_size = None
         self.out_size = None
         
-        fct = _get_attr(self, "load_"+ dataset_name.lower(), "There's no dataset by the name: {attr_name}")
+        fct = _get_attr(self, "load_"+ name.lower(), "There's no dataset by the name: {attr_name}")
         fct()
 
     def load_cifar10(self):
@@ -160,20 +160,15 @@ class MLP(torch.nn.Module):
         return self._get_data("bias.grad")
 
 class BatchReporter:
-    def __init__(self, period, variable_name):
+    def __init__(self, period, variable):
         self.period = period
-        self.variable_name = variable_name
+        self.variable = variable
         self.current_tick = 0
         self.dir = None
-        self.mkdir()
 
-    def mkdir(self):
-        import time
+    def set_dir(self, path):
         import os
-
-        fix = time.ctime().replace(":", "-").replace(" ", "_")
-        self.dir = self.variable_name + "_" + fix
-        print("making folder:", self.dir)
+        self.dir = os.path.join(path, self.variable)
         os.mkdir(self.dir)
 
     def tick(self, model):
@@ -184,7 +179,7 @@ class BatchReporter:
     def save_report(self, model):
         import os
 
-        fct_name = "get_" +  self.variable_name.lower()
+        fct_name = "get_" +  self.variable.lower()
         fct = _get_attr(model, fct_name, "Model has no function: {attr_name}")
 
         for key, value in fct().items():
@@ -198,32 +193,35 @@ class BatchReporter:
 
 class Trainer(object):
     """docstring for Trainer"""
-    def __init__(self, net, loss_name, optimizer_kwargs):
+    def __init__(self, net, data_master, reporters):
         """loss_name should be in torch.nn, optimizer kwargs is a dict with a field name that must in torcj.optim. The rest must be the parameters for the optimizer"""
         super(Trainer, self).__init__()
 
         self.net = net
-        self.criterion = _get_attr(torch.nn, loss_name, "There's no loss: {attr_name}")()
+        self.data_master = data_master
+        self.reporters = reporters
         
-        optimizer_fct = _get_attr(torch.optim, optimizer_kwargs["name"], "There's no optimizer: {attr_name}")
-        del optimizer_kwargs["name"]
-        self.optimizer = optimizer_fct(self.net.parameters(), **optimizer_kwargs)
-
-    def _one_pass(self, data, reporter, training):
-        self.optimizer.zero_grad()
+    def _one_pass(self, criterion, optimizer, data, training):
+        optimizer.zero_grad()
 
         inputs, labels = data
         outputs = self.net(inputs)
-        loss = self.criterion(outputs, labels)
+        loss = criterion(outputs, labels)
         if training:
             loss.backward(retain_graph = True)
-            self.optimizer.step()
-            reporter.tick(self.net)
+            optimizer.step()
+            for reporter in self.reporters:
+                reporter.tick(self.net)
 
         return loss.item()
 
-    def train(self, nb_epochs, data_master, reporter):
+    def train(self, loss_name, optimizer_kwargs, nb_epochs):
         from tqdm import trange
+
+        criterion = _get_attr(torch.nn, loss_name, "There's no loss: {attr_name}")()
+        optimizer_fct = _get_attr(torch.optim, optimizer_kwargs["name"], "There's no optimizer: {attr_name}")
+        del optimizer_kwargs["name"]
+        optimizer = optimizer_fct(self.net.parameters(), **optimizer_kwargs)
 
         learnin_curves = {
             "train": [],
@@ -232,15 +230,15 @@ class Trainer(object):
 
         pbar = trange(nb_epochs)
         for epoch in pbar:
-            train_loss = 0.0
-            for train_batch_id, data in enumerate(data_master.trainloader):
-                train_loss += self._one_pass(data, reporter=reporter, training=True)
+            train_loss = 0
+            for train_batch_id, data in enumerate(self.data_master.trainloader):
+                train_loss += self._one_pass(criterion, optimizer, data, training=True)
             train_loss = train_loss / (train_batch_id+1)
             learnin_curves["train"].append(train_loss)
 
-            test_loss = 0.0
-            for test_batch_id, data in enumerate(data_master.testloader):
-                test_loss += self._one_pass(data, reporter=None, training=False)
+            test_loss = 0
+            for test_batch_id, data in enumerate(self.data_master.testloader):
+                test_loss += self._one_pass(criterion, optimizer, data, training=False)
             test_loss = test_loss / (test_batch_id+1)
             learnin_curves["test"].append(test_loss)
                             
@@ -249,94 +247,37 @@ class Trainer(object):
 
         return learnin_curves
 
-def test2():
-    data_master = DataMaster("MNIST", 512, 8)
-    mlp_description = {
-        "layer_description":[
-            {
-                "in_size": data_master.in_size,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": data_master.out_size,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-        ]
-    }
-    mlp = MLP("from_list", mlp_description)
-    mlp.initialize("xavier_uniform_")
-    reporter = BatchReporter(2, "weights_gradients")
-    trainer = Trainer(mlp, "CrossEntropyLoss", {"name": "SGD", "lr": 0.001, "momentum":0.9})
-    trainer.train(10, data_master, reporter)
+def run(json_file):
+    import json
+    import os
 
-def test1():
-    def _i_will_not_write_proper_unit_tests(net):
-        inps = torch.rand( (1, 28*28) )
-        print( net(inps) )
-        print( net.layers )
-        print( net.get_weights() )
-        print( net.get_biases() )
-        print( net.get_weights_gradients() )
-        print( net.get_biases_gradients() )
+    def _mkdir():
+        import time
 
-        a = net.get_weights()["layer_0"].std()
-        net.initialize("xavier_uniform_")
-        b = net.get_weights()["layer_0"].std()
+        fix = time.ctime().replace(":", "-").replace(" ", "_").replace("__", "_")
+        print("making folder:", fix)
+        os.mkdir(fix)
+        return fix
 
-        print( a, b)
+    with open(json_file) as fifi:
+        config = json.load(fifi)
 
-    mlp_description = {
-        "layer_description":[
-            {
-                "in_size": 28*28,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": 100,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-            {
-                "in_size": 100,
-                "out_size": 10,
-                "bias": True,
-                "non_linearity": "ReLU"
-            },
-        ]
-    }
-    mlp = MLP("from_list", mlp_description)
-    _i_will_not_write_proper_unit_tests(mlp)
+    data_master = DataMaster(**config["dataset"])
+    mlp = MLP(config["network"]["build_type"], config["network"]["build_kwargs"])
+    mlp.initialize(config["initialization"]["name"], config["initialization"]["torch_kwargs"])
 
-def main():
-    # test1()
-    test2()
+    reporters = [ BatchReporter(**elmt) for elmt in config["reporters"] ]
+    experiment_dir = _mkdir()
+    for reporter in reporters:
+        reporter.set_dir(experiment_dir)
+
+    trainer = Trainer(mlp, data_master, reporters)
+    learning_curves = trainer.train(**config["trainer"])
+
+    for key, value in learning_curves.items():
+        fn = os.path.join(experiment_dir, "learning_curve_%s.npy" %key)
+        numpy.save(fn, numpy.array(value, dtype="float32"))
 
 if __name__ == '__main__':
-    main()
-
-
+    # run("mlp_from_list.json")
+    run("mlp_procedural.json")

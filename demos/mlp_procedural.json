@@ -1,0 +1,31 @@
+{
+	"dataset": {
+		"name": "MNIST",
+		"mininatch_size": 512,
+		"num_workers": 8
+	},
+	"network":{
+		"build_type": "procedural",
+		"build_kwargs":{
+			"in_size": 784,
+			"hid_size": 100,
+			"out_size": 10,
+			"nb_hidden": 3,
+			"non_linearity":"ReLU",
+			"last_non_linearity": "LogSoftmax",
+			"bias": true
+		}
+	},
+	"initialization":{ "name":"xavier_uniform_", "torch_kwargs": {}},
+	"reporters":[
+		{ "period": 10, "variable": "weights"},
+		{ "period": 10, "variable": "weights_gradients"},
+		{ "period": 10, "variable": "biases"},
+		{ "period": 10, "variable": "biases_gradients"}
+	],
+	"trainer":{
+		"loss_name": "CrossEntropyLoss",
+		"optimizer_kwargs": {"name": "SGD", "lr": 0.001, "momentum":0.9},
+		"nb_epochs": 10
+	}
+}
