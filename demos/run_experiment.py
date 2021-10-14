@@ -4,8 +4,8 @@ import torchvision.transforms as transforms
 
 import numpy
 
-from fiberedae.utils import nn as nnutils
-from icecream import ic
+#from fiberedae.utils import nn as nnutils
+#from icecream import ic
 
 import click
 
@@ -120,7 +120,11 @@ class MLP(torch.nn.Module):
         for layer in self.layers:
             try:
                 init(layer.weight, **torch_kwargs)
-            except torch.nn.modules.module.ModuleAttributeError:
+            except Exception as e: #torch.nn.modules.module.ModuleAttributeError:
+                # print( "Skipping initialization for layer following Exception:")
+                # print( e )
+                # print( "Layer: ", layer)
+                # print( "")
                 pass
 
     def forward(self, x_inputs):
@@ -136,7 +140,9 @@ class MLP(torch.nn.Module):
             for attr in attrs:
                 try:
                     obj = getattr(obj, attr)
-                except torch.nn.modules.module.ModuleAttributeError:
+                except Exception as e: #torch.nn.modules.module.ModuleAttributeError:
+                    #print( "Exception ", e)
+                    #print( "")
                     add_it = False
                     break
     
@@ -207,6 +213,10 @@ class Trainer(object):
         optimizer.zero_grad()
 
         inputs, labels = data
+        # Add cuda here
+        inputs = inputs.cuda()
+        labels = labels.cuda()
+        #
         outputs = self.net(inputs)
         loss = criterion(outputs, labels)
         if training:
@@ -249,9 +259,7 @@ class Trainer(object):
 
         return learnin_curves
 
-@click.command()
-@click.option('-j', '--json_file', required=True, help='The JSON file to run the experiment')
-def run(json_file):
+def run_as_module(json_file):
     import json
     import os
     import shutil
@@ -273,6 +281,8 @@ def run(json_file):
     data_master = DataMaster(**config["dataset"])
     mlp = MLP(config["network"]["build_type"], config["network"]["build_kwargs"])
     mlp.initialize(config["initialization"]["name"], config["initialization"]["torch_kwargs"])
+    # Cuda
+    mlp.cuda()
 
     reporters = [ BatchReporter(**elmt) for elmt in config["reporters"] ]
     experiment_dir = _mkdir(json_file)
@@ -292,6 +302,13 @@ def run(json_file):
         numpy.save(fn, numpy.array(value, dtype="float32"))
     
     print("done.")
+
+    return experiment_dir
+
+@click.command()
+@click.option('-j', '--json_file', required=True, help='The JSON file to run the experiment')
+def run(json_file):
+    return run_as_module(json_file)
 
 if __name__ == '__main__':
     run()

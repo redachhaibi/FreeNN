@@ -35,7 +35,7 @@
 			]
 		}
 	},
-	"initialization":{ "name":"xavier_uniform_", "torch_kwargs": {}},
+	"initialization":{ "name":"xavier_normal_", "torch_kwargs": {}},
 	"reporters":[
 		{ "period": 10, "variable": "weights"},
 		{ "period": 10, "variable": "weights_gradients"},
