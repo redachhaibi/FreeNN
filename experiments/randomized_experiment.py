@@ -9,8 +9,8 @@ if __name__ == '__main__':
     config = json.load( open('./experiment_jsons/mlp_from_list.json') )
     #
     # Loop
-    run_count = 1
-    run_per_architecture = 10
+    run_count = 10
+    run_per_architecture = 1
     for i in range(run_count):
         print("")
         print(f'''Launching experiment number {i}''')
@@ -30,6 +30,11 @@ if __name__ == '__main__':
         # Save new json to disk
         with open('./experiment_jsons/mlp_randomized.json', 'w') as outfile:
             json.dump(config, outfile, indent=4)
+
+        # Analysis via Free Probability
+        from freenn.core import newton, adaptative
+
+        assert(False)
         # Run experiment
         for j in range(run_per_architecture):
             path = run_experiment.run_as_module("./experiment_jsons/mlp_randomized.json")

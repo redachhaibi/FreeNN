@@ -10,24 +10,24 @@
             "layer_description": [
                 {
                     "in_size": 784,
-                    "out_size": 373,
+                    "out_size": 32,
                     "bias": true,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 373,
-                    "out_size": 96,
+                    "in_size": 32,
+                    "out_size": 27,
                     "bias": true,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 96,
-                    "out_size": 138,
+                    "in_size": 27,
+                    "out_size": 15,
                     "bias": true,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 138,
+                    "in_size": 15,
                     "out_size": 10,
                     "bias": true,
                     "non_linearity": "LogSoftmax"
@@ -36,7 +36,7 @@
         }
     },
     "initialization": {
-        "name": "xavier_uniform_",
+        "name": "xavier_normal_",
         "torch_kwargs": {}
     },
     "reporters": [
