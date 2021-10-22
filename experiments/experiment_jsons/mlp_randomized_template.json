@@ -35,7 +35,7 @@
 			]
 		}
 	},
-	"initialization":{ "name":"xavier_normal_", "torch_kwargs": {"gain":10.0}},
+	"initialization":{ "name":"xavier_normal_", "torch_kwargs": {"gain":1.0}},
 	"reporters":[
 	],
 	"trainer":{

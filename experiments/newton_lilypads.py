@@ -89,146 +89,172 @@ def scale_polynomial( P, s):
     exponents = np.linspace(degree, 0, num=degree+1)
     return P*( s**exponents )
 
-if __name__ == "__main__":
-  # q_grid = np.linspace(0.1, 5, num=100)
-  # fig = plt.figure( figsize = (12,7) )
-  # ax = fig.add_subplot( 111 )
-  # for s in ['Linear', 'Relu', 'HardTanh', 'HardSine']:
-  #     ax.plot(q_grid, compute_g(q_grid, s), '--', label=s)
-  # fig.tight_layout()
-  # plt.legend()
-  # plt.show()
 
-  from freenn.core import newton, adaptative
+def run_as_module(lambdas, sigma2s, verbose=False, plots=False):
+    from freenn.core import newton, adaptative
 
-  # Array of \lambda_l's
-  lambdas = [1]*5
-  Lambdas = np.cumprod(lambdas)
-  sigma2s = [1]*len(lambdas)
-  non_linearities = ['Relu']*len(lambdas)
-  L       = len(lambdas)
+    # Input = Array of \lambda_l's, width ratios
+    Lambdas = np.cumprod(lambdas)
+    non_linearities = ['Relu']*len(lambdas)
+    L       = len(lambdas)
 
 
-  # Compute coefficients of M_inverse (numerator and denominator)
-  # Conventions:
-  #   - Coefficients are numpy arrays
-  #   - Highest degree comes first
-  #
+    # Compute coefficients of M_inverse (numerator and denominator)
+    # Conventions:
+    #   - Coefficients are numpy arrays
+    #   - Highest degree comes first
+    #
+    print("Initialization...")
+    # Compute product of S_D's
+    num_S, den_S = [1], [1]
+    q            = 1
+    for index in range(L):
+        non_linearity = non_linearities[index]
+        q    = sigma2s[index]*compute_g(q, non_linearity)
+        # Compute X \mapsto M_D(X)
+        P, Q = compute_S_D(q, non_linearity)
+        # Compute X \mapsto M_D( Lambda*X )
+        Lambda = Lambdas[index]
+        P = scale_polynomial(P, Lambda)
+        Q = scale_polynomial(Q, Lambda)
+        # Multiply numerators and denominators
+        num_S  = np.polymul(num_S, P)
+        den_S  = np.polymul(den_S, Q)
 
-  # Compute product of S_D's
-  num_S, den_S = [1], [1]
-  q            = 1
-  for index in range(L):
-      non_linearity = non_linearities[index]
-      q    = sigma2s[index]*compute_g(q, non_linearity)
-      # Compute X \mapsto M_D(X)
-      P, Q = compute_S_D(q, non_linearity)
-      # Compute X \mapsto M_D( Lambda*X )
-      Lambda = Lambdas[index]
-      P = scale_polynomial(P, Lambda)
-      Q = scale_polynomial(Q, Lambda)
-      # Multiply numerators and denominators
-      num_S  = np.polymul(num_S, P)
-      den_S  = np.polymul(den_S, Q)
+    # Numerator of M_inverse
+    roots         = np.append(-1, -1/Lambdas)
+    leading_coeff = np.prod(Lambdas)*np.prod(sigma2s)
+    coeff_num     = np.poly( roots ) * leading_coeff
+    # Of denominator of M_inverse = w
+    coeff_den     = np.array( [1, 0] )
+    # Incorporate the inverse product of M_D's
+    coeff_num  = np.polymul(coeff_num, den_S)
+    coeff_den  = np.polymul(coeff_den, num_S)
 
-  # Numerator of M_inverse
-  roots         = np.append(-1, -1/Lambdas)
-  leading_coeff = np.prod(Lambdas)*np.prod(sigma2s)
-  coeff_num     = np.poly( roots ) * leading_coeff
-  # Of denominator of M_inverse = w
-  coeff_den     = np.array( [1, 0] )
-  # Incorporate the inverse product of M_D's
-  coeff_num  = np.polymul(coeff_num, den_S)
-  coeff_den  = np.polymul(coeff_den, num_S)
+    # Setup Wrapper
+    wrapper = newton.Polynomial_Kantorovich_Wrapper( coeff_num, coeff_den)
 
-  wrapper = newton.Polynomial_Kantorovich_Wrapper( coeff_num, coeff_den)
+    def mean( coeff_num, coeff_den):
+        mean = np.polyval(coeff_num, 0) / np.polyval( coeff_den[:-1], 0 )
+        return mean
 
-  def mean( coeff_num, coeff_den):
-    mean = np.polyval(coeff_num, 0) / np.polyval( coeff_den[:-1], 0 )
-    return mean
+    #
+    # Computation of measure
+    print("Computation of measure...")
 
-  print( mean(coeff_num, coeff_den) )
+    #N: Space mesh
+    N=1000
+    a=-1
+    b=6
 
-  # Computation of measure
-  import matplotlib.pyplot as plt
-  import numpy as np
+    #Init
+    space_grid = np.linspace(a, b, N)
+    dx = (b-a)/N
 
-  #N: Space mesh
-  N=1000
-  a=-1
-  b=6
+    #Multiple passes for the number of iterations
+    #imaginary_parts = [1.0, 0.01, 1e-4]
+    imaginary_parts = [1e-4]
+    densities       = []
+    hilbert_transf  = []
+    pass_counter    = 0
+    iter_count      = [ [] for i in space_grid ]
+    errors1         = [ [] for i in space_grid ]
+    errors2         = [ [] for i in space_grid ]
+    choices         = [ [] for i in space_grid ]
 
-  #Init
-  space_grid = np.linspace(a, b, N)
-  dx = (b-a)/N
+    j = complex(0,1)
+    measure_mean = mean(coeff_num, coeff_den)
 
-  #Multiple passes for the number of iterations
-  #imaginary_parts = [1.0, 0.1, 0.01, 1e-4, 1e-6]
-  imaginary_parts = [1e-4]
-  densities       = []
-  hilbert_transf  = []
-  pass_counter    = 0
-  iter_count      = [ [] for i in space_grid ]
-  errors1         = [ [] for i in space_grid ]
-  errors2         = [ [] for i in space_grid ]
-  choices         = [ [] for i in space_grid ]
+    fig = plt.figure( figsize = (12,7) )
+    ax = fig.add_subplot( 111 )
+    y_proxy = None
+    guess   = None
+    G       = np.array( space_grid + complex(0,1) )
+    for y in imaginary_parts:
+        start = time.time()
+        adaptative.reset_counters()
+        # Compute
+        if y_proxy is not None:
+            z_proxy = z
+        z = np.array( space_grid + y*complex(0,1) )
+        mean_index = int(0.5*N) #np.searchsorted(space_grid, measure_mean)
+        if y_proxy is None: #First pass is special
+            g                 = adaptative.compute_G_adaptative(measure_mean+j, function_wrapper = wrapper, proxy=None)
+            precomputed_proxy = (measure_mean+j,  g)
+        # Sweep right
+        guess = precomputed_proxy
+        for i in range(mean_index, N):
+            G[i]  = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
+            guess = ( z[i], G[i] )
+        # Sweep left
+        guess = precomputed_proxy
+        for i in range(mean_index, -1, -1):
+            G[i] = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
+            guess = ( z[i], G[i] )
+        # else:
+        #     for i in range(0, N):
+        #         guess = ( z_proxy[i], G[i] )
+        #         G[i]  = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
+        # Statistics
+        pass_counter += 1
+        timing        = time.time() - start
+        if verbose:
+            print ('Pass [{}/{}], Duration: {:.1f} ms' 
+                    .format(pass_counter, len(imaginary_parts), 1000*timing))
+            print("Number of calls to subroutine:")
+            print("'Newton-Raphson'  :", adaptative.call_counter_NR)
+            print("'Attraction basin':", adaptative.call_counter_failed_basin)
+            print("")
+        # Plot
+        ax.plot(space_grid, -np.imag(G)/np.pi, '--', label="y=%.5f"%y)
+        ax.set(xlabel='Space (x)', ylabel='Value',
+                title='Density')
+        ax.grid()
+        # Update proxy
+        y_proxy = y
+        precomputed_proxy = ( z[mean_index], G[mean_index])
+    #
+    density    = -np.imag(G)/np.pi
+    cumulative = np.cumsum(density)
+    cumulative = cumulative/max(cumulative)
+    # Final plot
+    if plots:
+        plt.ylim(0,0.5)
+        plt.legend()
+        plt.savefig('multiscale.png')
+        plt.show()
+        #
+        fig = plt.figure( figsize = (12,7) )
+        ax = fig.add_subplot( 111 )
+        ax.plot(space_grid, cumulative, '--', label="y=%.5f"%y)
+        ax.set(xlabel='Space (x)', ylabel='Value',
+                title='Cumulative')
+        ax.grid()
+        plt.ylim(0,1.1)
+        plt.legend()
+        plt.show()
+    #
+    quantiles = np.zeros(11)
+    for i in range(11):
+        a = 0.1*i
+        quantiles[i] = space_grid[ np.searchsorted( cumulative, a) ]
+    print('Quantiles (from 0 to 1, with 0.1 steps):')
+    print(quantiles)
+    return {
+        'space_grid': space_grid,
+        'density'   : density,
+        'cumulative': cumulative,
+        'quantiles' : quantiles
+    }
 
-  j = complex(0,1)
-  measure_mean = mean(coeff_num, coeff_den)
 
-  fig = plt.figure( figsize = (12,7) )
-  ax = fig.add_subplot( 111 )
-  y_proxy = None
-  guess   = None
-  G       = np.array( space_grid + complex(0,1) )
-  for y in imaginary_parts:
-      start = time.time()
-      adaptative.reset_counters()
-      # Compute
-      z = np.array( space_grid + y*complex(0,1) )
-      mean_index = np.searchsorted(space_grid, measure_mean)
-      if y_proxy is None: #First pass is special
-          g                 = adaptative.compute_G_adaptative(measure_mean+j, function_wrapper = wrapper, proxy=None)
-          precomputed_proxy = (measure_mean+j,  g)
-      # Sweep right
-      guess = precomputed_proxy
-      for i in range(mean_index, N):
-          G[i]  = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
-          guess = ( z[i], G[i] )
-      # Sweep left
-      guess = precomputed_proxy
-      for i in range(mean_index, -1, -1):
-          G[i] = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
-          guess = ( z[i], G[i] )
-      # Statistics
-      pass_counter += 1
-      timing        = time.time() - start
-      print ('Pass [{}/{}], Duration: {:.1f} ms' 
-            .format(pass_counter, len(imaginary_parts), 1000*timing))
-      print("Number of calls to subroutine:")
-      print("'Newton-Raphson'  :", adaptative.call_counter_NR)
-      print("'Attraction basin':", adaptative.call_counter_failed_basin)
-      print("")
-      # Plot
-      ax.plot(space_grid, -np.imag(G)/np.pi, '--', label="y=%.5f"%y)
-      ax.set(xlabel='Space (x)', ylabel='Value',
-            title='Density')
-      ax.grid()
-      # Update proxy
-      y_proxy = y
-      precomputed_proxy = ( z[mean_index], G[mean_index])
-  plt.ylim(0,0.5)
-  plt.legend()
-  plt.savefig('multiscale.png')
-  plt.show()
-  #
-  # Final plot
-  fig = plt.figure( figsize = (12,7) )
-  ax = fig.add_subplot( 111 )
-  ax.plot(space_grid, -np.imag(G)/np.pi, '--', label="y=%.5f"%y)
-  ax.set(xlabel='Space (x)', ylabel='Value',
-        title='Density')
-  ax.grid()
-  plt.ylim(0,0.5)
-  plt.legend()
-  plt.show()
+import click
+@click.command()
+#@click.option('-j', '--json_file', required=True, help='The JSON file to run the experiment')
+def run():
+    lambdas = [1]*5
+    sigma2s = [1]*len(lambdas)
+    return run_as_module(lambdas, sigma2s, verbose=True, plots=True)
+
+if __name__ == '__main__':
+    run()

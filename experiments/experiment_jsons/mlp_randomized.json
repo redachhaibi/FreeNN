@@ -1,7 +1,7 @@
 {
     "dataset": {
         "name": "MNIST",
-        "mininatch_size": 512,
+        "mininatch_size": 64,
         "num_workers": 8
     },
     "network": {
@@ -10,26 +10,26 @@
             "layer_description": [
                 {
                     "in_size": 784,
-                    "out_size": 32,
-                    "bias": true,
+                    "out_size": 326,
+                    "bias": false,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 32,
-                    "out_size": 27,
-                    "bias": true,
+                    "in_size": 326,
+                    "out_size": 324,
+                    "bias": false,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 27,
-                    "out_size": 15,
-                    "bias": true,
+                    "in_size": 324,
+                    "out_size": 281,
+                    "bias": false,
                     "non_linearity": "ReLU"
                 },
                 {
-                    "in_size": 15,
+                    "in_size": 281,
                     "out_size": 10,
-                    "bias": true,
+                    "bias": false,
                     "non_linearity": "LogSoftmax"
                 }
             ]
@@ -37,33 +37,18 @@
     },
     "initialization": {
         "name": "xavier_normal_",
-        "torch_kwargs": {}
-    },
-    "reporters": [
-        {
-            "period": 10,
-            "variable": "weights"
-        },
-        {
-            "period": 10,
-            "variable": "weights_gradients"
-        },
-        {
-            "period": 10,
-            "variable": "biases"
-        },
-        {
-            "period": 10,
-            "variable": "biases_gradients"
+        "torch_kwargs": {
+            "gain": 1.4952607359874057
         }
-    ],
+    },
+    "reporters": [],
     "trainer": {
         "loss_name": "CrossEntropyLoss",
         "optimizer_kwargs": {
             "name": "SGD",
             "lr": 0.001,
-            "momentum": 0.9
+            "momentum": 0.0
         },
-        "nb_epochs": 10
+        "nb_epochs": 50
     }
 }
