@@ -43,4 +43,4 @@ python -m ipykernel install --user --name=myenv
 Nothing to do
 
 ## Credits
-R.C. thanks his colleagues Mireille Capitaine and Mireille Capitaine for fruitful conversations on Free Probability.
+Later

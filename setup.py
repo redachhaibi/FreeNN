@@ -15,8 +15,8 @@ setup(
     This is an implementation of adaptative Newton-Raphson schemes, which effectively compute such spectral densities.""",
     url='',
 
-    author='CHHAIBI Reda',
-    author_email='chhaibi.reda@gmail.com',
+    author='Anonymous',
+    author_email='Anonymous',
 
     license='ApacheV2',
 
