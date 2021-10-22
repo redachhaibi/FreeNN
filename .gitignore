@@ -4,6 +4,7 @@ experiments/samples/
 experiments/data/
 experiments/mlp*
 experiments/random_jsons/*
+experiments/random*
 experiments/save*
 .venv
 .vscode

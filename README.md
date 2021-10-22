@@ -1,5 +1,24 @@
 # FreeNN
 
+## Content
+
+The repository is structured as follows. We only describe the most important files for a new user.
+```bash
+./
+|-- experiments
+|  |-- run_generate_architectures.py: Samples random architectures and compute FPT metrics.
+|  |-- run_randomized_experiment.py: Trains several neural networks based on architectures described in json files.
+|-- freenn: Contains the numerical routines aimed at computing FPT densities.
+|-- ipynb: Contains Python notebooks which demonstrate how the code works
+|  |-- DemoFPT.ipynb: Illustrates the measure concentration in FPT.
+|  |-- mc_vs_lilypads.ipynb: Benchmarks our method compared to Monte-Carlo sampling. Used to generate the figure of Section 5.
+|  |-- LossStatistics.ipynb: Once all the experiments have been run, this notebook computes correlation statistics and gives a scatter plot.
+|-- tests: Unit tests
+|-- README.md: This file
+```
+
+Note that the dependencies have been left to a bare minimum in order to run the package freenn. Running the experiments however requires the installation of Pytorch.
+
 ## Installation
 
 1. Create new virtual environment
