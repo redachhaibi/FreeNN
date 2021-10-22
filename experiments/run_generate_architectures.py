@@ -27,14 +27,14 @@ if __name__ == '__main__':
             #
             layer['in_size'] = out_size
             random_factor = np.random.uniform()
-            random_factor = 1.5*random_factor+0.2
+            random_factor = 1.5*random_factor+0.25
             width_ratios.append( random_factor )
             out_size = max(int( random_factor*out_size + 0.5), 1)
             layer['out_size'] = out_size
         # Set last in_size
         description[-1]['in_size'] = out_size
         # Gain
-        gain = 2.0 #np.random.exponential()
+        gain = np.random.exponential()
         config['initialization']['torch_kwargs']['gain'] = gain
 
         #
