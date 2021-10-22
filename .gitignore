@@ -1,6 +1,10 @@
 # Custom
 experiments/mnist_data/
 experiments/samples/
+experiments/data/
+experiments/mlp*
+experiments/random_jsons/*
+experiments/save*
 .venv
 .vscode
 
