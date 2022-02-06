@@ -61,8 +61,8 @@ def is_in_basin(z, m, function_wrapper, debug=False):
         print("new_m:", new_m)
         print("Im(m + h_0): ", new_m.imag)
     # Check if new_m in domain
-    if new_m.imag >= 0:
-       return False
+    #if new_m.imag >= 0:
+    #   return False
     # Check if NR ball is in domain
     ball_max_y = new_m.imag + abs(step.imag)
     if debug:

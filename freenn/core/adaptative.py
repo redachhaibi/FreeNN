@@ -38,7 +38,7 @@ def compute_G_adaptative( z_objective, function_wrapper, proxy=None, debug=False
     # Starts heading towards the objective z
     while abs(z- z_objective)>0:
         dz = z_objective-z
-        while not newton.is_in_basin_ZG(z+dz, g, function_wrapper=function_wrapper):
+        while not newton.is_in_basin_ZG(z+dz, g, function_wrapper=function_wrapper, debug=debug):
             call_counter_failed_basin += 1
             dz = 0.5*dz
         z = z+dz
