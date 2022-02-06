@@ -17,7 +17,10 @@ The repository is structured as follows. We only describe the most important fil
 |-- README.md: This file
 ```
 
-Note that the dependencies have been left to a bare minimum in order to run the package freenn. Running the experiments however requires the installation of Pytorch.
+Note that the dependencies have been left to a bare minimum in order to run the package freenn. Running the experiments however requires the installation of torch, torchvision and click via:
+```bash
+$ pip install torch torchvision click
+```
 
 ## Installation
 

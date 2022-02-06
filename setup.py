@@ -25,7 +25,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
 
-    install_requires=["numpy", "matplotlib", "scipy"],
+    install_requires=["numpy==1.19", "matplotlib", "scipy==1.7"],
 
     keywords='',
 
