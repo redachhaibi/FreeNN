@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def launch():
-    with open('./experiments/benchmark.csv', newline='') as csvfile:
+    with open('./experiments/benchmark_N.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         data   = {}
         for row in reader:
@@ -17,17 +17,17 @@ def launch():
     for method in data:
         values = data[method]
         # Plot for densities
-        x = [ e['depth'] for e in values]
+        x = [ e['N'] for e in values]
         y = [ float(e['time'])*1000 for e in values]
         ax.scatter(x, y, label=method)
-        ax.set(xlabel='Number of layers (L)', ylabel='Computational cost (ms)',
+        ax.set(xlabel='Number of density points (N)', ylabel='Computational time (ms)',
                 title='')
         ax.grid()
         ax.set_yscale('log')
         #ax.set_ylim(0,0.5)
         ax.legend()
     #
-    plt.savefig("benchmark_plot.png")
+    plt.savefig("benchmark_plot_N.png")
     plt.show()
 
 
