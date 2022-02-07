@@ -93,11 +93,12 @@ def scale_polynomial( P, s):
 # N=Number of points
 # a=Left edge
 # b=Right edge
+import cython
+from freenn.core import adaptative_cython
 
 def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
                     imaginary_parts = [0.1, 0.01, 1e-3, 1e-4],
                     interval = (-3, 20), N=1000, ignoreNonLinearity=False):
-    from freenn.core import newton, adaptative
 
     # Input = Array of \lambda_l's, width ratios
     Lambdas = np.cumprod(lambdas)
@@ -153,7 +154,7 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
         print( "Numerator coefficients :", coeff_num)
 
     # Setup Wrapper
-    wrapper = newton.Polynomial_Kantorovich_Wrapper( coeff_num, coeff_den)
+    wrapper = adaptative_cython.Polynomial_Kantorovich_Wrapper( coeff_num, coeff_den)
 
     def mean( coeff_num, coeff_den):
         mean = np.polyval(coeff_num, 0) / np.polyval( coeff_den[:-1], 0 )
@@ -206,7 +207,7 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
             print(f'|- Im z: {y}')
             print(f'|- Mean: {measure_mean}')
         start = time.time()
-        adaptative.reset_counters()
+        adaptative_cython.reset_counters()
         # Compute
         z = np.array( space_grid + y*complex(0,1) )
         # Problematic region is around zero
@@ -225,7 +226,7 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
         guess = None
         #for i in range(mean_index, N):
         for i in range(l1):
-            G[i]  = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
+            G[i]  = adaptative_cython.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
             guess = ( z[i], G[i] )
         # Sweep left
         if verbose:
@@ -233,7 +234,7 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
         # guess = precomputed_proxy
         guess = None
         for i in range(N-1, l2, -1):
-            G[i] = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
+            G[i] = adaptative_cython.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
             guess = ( z[i], G[i] )
         #
         # Statistics
@@ -243,8 +244,8 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
                     .format(pass_counter, len(imaginary_parts), 1000*timing))
         if verbose:
             print("Number of calls to subroutine:")
-            print("'Newton-Raphson'  :", adaptative.call_counter_NR)
-            print("'Attraction basin':", adaptative.call_counter_failed_basin)
+            print("'Newton-Raphson'  :", adaptative_cython.call_counter_NR)
+            print("'Attraction basin':", adaptative_cython.call_counter_failed_basin)
         #
         # Compute density
         #density    = G-mass_at_zero/(space_grid+y*j) # This line removes mass at zero

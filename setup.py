@@ -1,9 +1,25 @@
-from setuptools import setup, find_packages
+from setuptools import Extension, setup, find_packages
 from codecs import open
 from os import path
+from Cython.Build import cythonize
+
+import numpy
 
 here = path.abspath(path.dirname(__file__))
 
+# Profiling
+# Thanks to @tryptofame for proposing an updated snippet
+from Cython.Compiler.Options import get_directive_defaults
+directive_defaults = get_directive_defaults()
+
+directive_defaults['linetrace'] = True
+directive_defaults['binding'] = True
+
+extensions = [
+    Extension("*",sources=["freenn/core/*.pyx"], include_path=[numpy.get_include()], define_macros=[('CYTHON_TRACE', '1')])
+]
+
+# Setup
 setup(
     name='freenn',
 
@@ -36,4 +52,6 @@ setup(
             'sample=sample:main',
         ],
     },
+
+    ext_modules=cythonize( extensions ),
 )

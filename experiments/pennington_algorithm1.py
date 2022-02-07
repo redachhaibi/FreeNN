@@ -95,7 +95,8 @@ def scale_polynomial( P, s):
 # b=Right edge
 
 def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
-                    imaginary_parts = [0.1, 0.01, 1e-3, 1e-4],
+                    pennington_b=1.5,
+                    imaginary_part = 1e-2,
                     interval = (-3, 20), N=1000, ignoreNonLinearity=False):
     from freenn.core import newton, adaptative
 
@@ -197,50 +198,53 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
     y_proxy = None
     guess   = None
     G       = np.array( np.zeros_like(space_grid) - 1e-3*complex(0,1) )
-    for y in imaginary_parts:
+    M       = np.array( np.zeros_like(space_grid) - 1e-3*complex(0,1) )
+
+    for k in range(2*L):
         pass_counter += 1
         if verbose:
             print("")
             print ('Pass [{}/{}]:' 
-                    .format(pass_counter, len(imaginary_parts)))
+                    .format(pass_counter, 2*L))
             print(f'|- Im z: {y}')
             print(f'|- Mean: {measure_mean}')
         start = time.time()
-        adaptative.reset_counters()
         # Compute
+        y = pennington_b**(L-k) + imaginary_part
         z = np.array( space_grid + y*complex(0,1) )
-        # Problematic region is around zero
-        if y<=0.01:
-            l2 = np.searchsorted(space_grid, 0.02)
-            l1 = np.searchsorted(space_grid, -0.02)
+        # Case k=0
+        if k==0:
+            M = M*complex(0,0)
+            G = 1/z
+            continue
+        #
+        # Case k>0
+        #
+        # Form polynomials reprenting M_inverse
+        # (Valid for ReLu only)
+        # Numerator of M_inverse
+        half_k = int(k/2)
+        if ignoreNonLinearity:
+            roots         = np.append(-1, -1/(Lambdas[:half_k]) )
         else:
-            l2 = np.searchsorted(space_grid, 0)-1
-            l1 = l2+1
-        if verbose:
-            print(f"Problematic indices: [{l1},{l2}]")
-        # Sweep right
-        if verbose:
-            print("Sweeping left of zero")
-        # guess = precomputed_proxy
-        guess = None
-        #for i in range(mean_index, N):
-        for i in range(l1):
-            G[i]  = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
-            guess = ( z[i], G[i] )
-        # Sweep left
-        if verbose:
-            print("Sweeping right of zero")
-        # guess = precomputed_proxy
-        guess = None
-        for i in range(N-1, l2, -1):
-            G[i] = adaptative.compute_G_adaptative(z[i], function_wrapper = wrapper, proxy=guess)
-            guess = ( z[i], G[i] )
+            roots         = np.append(-1, -1/(2*Lambdas[:half_k]) )
+        leading_coeff = np.prod(Lambdas[:half_k])*np.prod(sigma2s[:half_k])
+        coeff_num     = np.poly( roots ) * leading_coeff
+        # Denominator of M_inverse = m
+        coeff_den     = np.array( [1, 0] )
+        # Loop: M solves M_inverse(M) = z[i]
+        for i in range(len(space_grid)):
+            polynomial = np.polyadd( coeff_num, - z[i]*coeff_den)
+            roots = np.roots(polynomial)
+            index = np.abs(roots-M[i])
+            index = index.argmin()
+            M[i] = roots[index]
+            G[i]  = (M[i]+1)/z[i]
         #
         # Statistics
         timing        = time.time() - start
-        if verbose:
-            print ('Pass [{}/{}], Duration: {:.1f} ms' 
-                    .format(pass_counter, len(imaginary_parts), 1000*timing))
+        print ('Pass [{}/{}], Duration: {:.1f} ms' 
+                .format(pass_counter, 2*L, 1000*timing))
         if verbose:
             print("Number of calls to subroutine:")
             print("'Newton-Raphson'  :", adaptative.call_counter_NR)
