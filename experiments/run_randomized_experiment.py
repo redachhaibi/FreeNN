@@ -9,11 +9,21 @@ if __name__ == '__main__':
     #
     # Loop
     run_per_architecture = 10
+
+    # Directory
+    abspath  = os.path.abspath(__file__)
+    dirname  = os.path.dirname( abspath )
+    # Json config MNIST
+    #jsonfilename = os.path.join( dirname, 'experiment_jsons/mlp_randomized_template.json')
+    # Experiment dir
+    experiment_dir = os.path.join( dirname, "random_architectures_with_loss")
+    
+
     for i in range(run_per_architecture):
-        experiment_dir = "./random_jsons/random_architectures_with_loss"
         print("")
         print(f'''Launching experiment number {i}...''')
         filenames = [f for f in os.listdir(experiment_dir) if os.path.isfile(os.path.join(experiment_dir, f))]
+
         for filename in filenames:
             full_path = os.path.join(experiment_dir, filename)
             #

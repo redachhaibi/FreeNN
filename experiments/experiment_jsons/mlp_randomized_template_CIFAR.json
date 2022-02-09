@@ -1,0 +1,70 @@
+{
+	"dataset": {
+		"name": "CIFAR10",
+		"mininatch_size": 64,
+		"num_workers": 8
+	},
+	"network":{
+		"build_type": "from_list",
+		"build_kwargs":{
+			"layer_description":[
+				{
+					"in_size": 3072,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 100,
+					"bias": false,
+					"non_linearity": "ReLU"
+				},
+				{
+					"in_size": 100,
+					"out_size": 10,
+					"bias": false,
+					"non_linearity": "LogSoftmax"
+				}
+			]
+		}
+	},
+	"initialization":{ "name":"xavier_normal_", "torch_kwargs": {"gain":1.0}},
+	"reporters":[
+	],
+	"trainer":{
+		"loss_name": "CrossEntropyLoss",
+		"optimizer_kwargs": {"name": "SGD", "lr": 0.001, "momentum":0.0},
+		"nb_epochs": 50
+	}
+}

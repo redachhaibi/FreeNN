@@ -302,7 +302,8 @@ def run_as_module(lambdas, sigma2s, verbose=False, plots=False,
         'space_grid': space_grid,
         'density'   : density,
         'cumulative': cumulative,
-        'quantiles' : quantiles
+        'quantiles' : quantiles,
+        'mean'      : measure_mean,
     }
 
 
