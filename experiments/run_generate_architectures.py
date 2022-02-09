@@ -7,10 +7,23 @@ import run_experiment
 import newton_lilypads
 
 if __name__ == '__main__':
-    config = json.load( open('./experiment_jsons/mlp_randomized_template.json') )
+    dataset = 'MNIST'
+    dataset = 'CIFAR10'
+
+    abspath  = os.path.abspath(__file__)
+    dirname  = os.path.dirname( abspath )
+
+    # Select json template
+    if dataset=='MNIST':
+        jsonfilename = 'mlp_randomized_template.json'
+    elif dataset=='CIFAR10':
+        jsonfilename = 'mlp_randomized_template_CIFAR.json'
+
+    jsonfilename = os.path.join( dirname, 'experiment_jsons', jsonfilename)
+    config = json.load( open( jsonfilename ) )
     need_generation = True
     #
-    # Comment if not test
+    # Comment if not testing a specific seed
     #config = json.load( open('./random_jsons/random_Thu_Feb_3_14-21-22_2022.json') )
     #config = json.load( open('./random_jsons/random_Sun_Feb_6_00-27-47_2022.json') )
     #config = json.load( open('./random_jsons/random_Sun_Feb_6_01-00-47_2022.json') )
@@ -33,6 +46,13 @@ if __name__ == '__main__':
         print("")
         print(f'''Launching experiment number {i}...''')
 
+        if dataset=='MNIST':
+            possible_ratios  = [1.0/4, 1.0/3, 0.5, 2.0/3, 1.0, 1.5, 2, 3, 4]
+            possible_gains   = [0.25, 0.5, 1.0, 2.0, 4.0]
+        elif dataset=='CIFAR10':
+            possible_ratios  = [1.0/3, 0.5, 2.0/3, 1.0, 1.5]
+            possible_gains   = [0.25, 0.5, 1.0, 2.0, 4.0]
+
         #
         # Identifier
         import time
@@ -51,15 +71,17 @@ if __name__ == '__main__':
                 layer = description[i]
                 #
                 layer['in_size'] = out_size
-                random_factor = np.random.uniform()
-                random_factor = 1.5*random_factor+0.25
+                random_factor = np.random.choice( possible_ratios )
                 width_ratios.append( random_factor )
                 out_size = max(int( random_factor*out_size + 0.5), 1)
                 layer['out_size'] = out_size
             # Set last in_size
             description[-1]['in_size'] = out_size
+            #
             # Gain
-            gain = min(np.random.exponential(), 5)
+            gain = np.random.choice( possible_gains )
+            if dataset=='CIFAR10':
+                gain = 1.5*(gain**(1.0/layer_count))    # Architecture is much deeper for CIFAR10
             config['initialization']['torch_kwargs']['gain'] = gain
             # FPT hyperparameters
             width_ratios  = np.array( width_ratios )
@@ -72,11 +94,15 @@ if __name__ == '__main__':
             width_ratios  = np.array( config['FPT']['width_ratios'] )
             variances     = np.array( config['FPT']['variances'] )
 
+        #
+        # Abort architecture if variances too large
+        # TODO
 
         #
         # Save architecture
         filename = identifier+".json"
-        with open( os.path.join('./random_jsons', filename), 'w') as outfile:
+        filepath = os.path.join(dirname, 'random_architectures', filename)
+        with open( filepath, 'w') as outfile:
             json.dump(config, outfile, indent=4)
             outfile.close()
 
@@ -85,16 +111,12 @@ if __name__ == '__main__':
         print("--> Analysis via FPT...")
         print("Width ratios: ", width_ratios)
         print("Variances   : ", variances)
-        analysis = newton_lilypads.run_as_module( width_ratios, variances, verbose=True, plots=True )
+        analysis = newton_lilypads.run_as_module( width_ratios, variances, verbose=True, plots=False )
 
         #
         # Save FTP result
-        filename = identifier+".json"
         config['FPT']['quantiles'] = list(analysis['quantiles']) 
-        with open( os.path.join('./random_jsons', filename), 'w') as outfile:
+        filepath = os.path.join(dirname, 'random_architectures_with_quantiles', filename)
+        with open( filepath, 'w') as outfile:
             json.dump(config, outfile, indent=4)
             outfile.close()
-        # for key in analysis:
-        #     filename = "random_"+date+"_"+key+".npy"
-        #     path = os.path.join('./random_jsons', filename)
-        #     np.save( path, analysis[key])
