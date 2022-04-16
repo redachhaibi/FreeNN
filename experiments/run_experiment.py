@@ -218,12 +218,17 @@ class Trainer(object):
         labels = labels.cuda()
         #
         outputs = self.net(inputs)
+
         loss = criterion(outputs, labels)
         if training:
             loss.backward(retain_graph = True)
             optimizer.step()
             for reporter in self.reporters:
                 reporter.tick(self.net)
+        else: # Compute accuracy
+            pred = torch.argmax(outputs, 1) 
+            accuracy = torch.mean( 1.0*(labels == pred) )
+            return loss.item(), accuracy.item()
 
         return loss.item()
 
@@ -237,7 +242,8 @@ class Trainer(object):
 
         learnin_curves = {
             "train": [],
-            "test": []
+            "test" : [],
+            "acc"  : []
         }
 
         pbar = trange(nb_epochs)
@@ -249,13 +255,18 @@ class Trainer(object):
             learnin_curves["train"].append(train_loss)
 
             test_loss = 0
+            accuracy  = 0
             for test_batch_id, data in enumerate(self.data_master.testloader):
-                test_loss += self._one_pass(criterion, optimizer, data, training=False)
+                loss, acc = self._one_pass(criterion, optimizer, data, training=False)
+                test_loss += loss
+                accuracy += acc
             test_loss = test_loss / (test_batch_id+1)
+            accuracy  = accuracy  / (test_batch_id+1)
             learnin_curves["test"].append(test_loss)
+            learnin_curves["acc" ].append(accuracy)
                             
-            label = "epoch: %d, train: %.4f, test: %.4f" % (epoch, train_loss, test_loss)
-            pbar.set_description( label )
+            label = "epoch: %d, train: %.4f, test: %.4f, acc: %.2f " % (epoch, train_loss, test_loss, accuracy*100)
+            pbar.set_description( label + "%")
 
         return learnin_curves
 

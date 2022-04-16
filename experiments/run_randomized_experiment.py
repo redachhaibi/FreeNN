@@ -31,22 +31,31 @@ if __name__ == '__main__':
             print(" |- Running experiment ", full_path)
             path       = run_experiment.run_as_module(full_path)
             #path      = "random_Fri_Oct_15_09-02-15_2021_Fri_Oct_15_09-42-33_2021"
+            # 
+            # Get learning curves
             train_path =  os.path.join(path, "learning_curve_train.npy")
             test_path  =  os.path.join(path, "learning_curve_test.npy")
+            acc_path   =  os.path.join(path, "learning_curve_acc.npy")
             learning_curve_train = np.load(train_path)
             learning_curve_test  = np.load(test_path)
-            print("   Final loss (train):", learning_curve_train[-1])
-            print("   Final loss (test ):", learning_curve_test[-1] )
+            learning_curve_acc   = np.load(acc_path)
+            print("   Final loss (train)   :", learning_curve_train[-1])
+            print("   Final loss (test )   :", learning_curve_test[-1] )
+            print("   Final accuracy (test):", learning_curve_acc[-1] )
             #
             # Record:
             config = json.load( open( full_path) )
             if not 'Results' in config:
                config['Results'] = {
                    'learning_curve_train': [],
-                   'learning_curve_test': []
+                   'learning_curve_test': [],
+                   'learning_curve_acc' : [],
                }
+            elif not 'learning_curve_acc' in config['Results']:
+                config['Results']['learning_curve_acc'] = []
             config['Results']['learning_curve_train'].append( float(learning_curve_train[-1]) )
             config['Results']['learning_curve_test' ].append( float(learning_curve_test[-1] ) )
+            config['Results']['learning_curve_acc'].append( float(learning_curve_acc[-1] ) )
             #
             # Dump
             with open( full_path, 'w') as outfile:
