@@ -8,11 +8,11 @@ The repository is structured as follows. We only describe the most important fil
 |-- experiments
 |  |-- run_generate_architectures.py: Samples random architectures and compute FPT metrics.
 |  |-- run_randomized_experiment.py: Trains several neural networks based on architectures described in json files.
-|-- freenn: Contains the numerical routines aimed at computing FPT densities.
+|-- freenn: Contains the numerical routines aimed at computing FPT densities. 
 |-- ipynb: Contains Python notebooks which demonstrate how the code works
 |  |-- DemoFPT.ipynb: Illustrates the measure concentration in FPT.
-|  |-- mc_vs_lilypads.ipynb: Benchmarks our method compared to Monte-Carlo sampling. Used to generate the figure of Section 5.
-|  |-- LossStatistics.ipynb: Once all the experiments have been run, this notebook computes correlation statistics and gives a scatter plot.
+|  |-- mc_vs_lilypads.ipynb: Benchmarks our method compared to Monte-Carlo sampling. Used to generate the benchmark figure (Fig. 1).
+|  |-- LossStatistics.ipynb: Once all the experiments have been run, this notebook computes correlation statistics and gives the scatter plot (Fig. 2).
 |-- tests: Unit tests
 |-- README.md: This file
 ```
